@@ -1,0 +1,5 @@
+{
+  "name": "Acoustic Guesser",
+  "description": "A minimalist brown-themed guessing game with an AI host and background music.",
+  "requestFramePermissions": []
+}
