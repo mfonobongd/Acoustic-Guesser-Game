@@ -36,6 +36,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60);
   const [hintRevealed, setHintRevealed] = useState(0);
+  const [startCountdown, setStartCountdown] = useState<number | null>(null);
   
   const chatRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -62,6 +63,17 @@ export default function App() {
       audioRef.current.play().catch(e => console.error("Audio play failed", e));
     }
   }, [currentTrack]);
+
+  useEffect(() => {
+    if (startCountdown === null) return;
+    if (startCountdown > 0) {
+      const timer = setTimeout(() => setStartCountdown(startCountdown - 1), 1000);
+      return () => clearTimeout(timer);
+    } else {
+      setStartCountdown(null);
+      startGame();
+    }
+  }, [startCountdown]);
 
   useEffect(() => {
     if (gameState !== 'playing' || isLoading) return;
@@ -103,6 +115,7 @@ export default function App() {
   };
 
   const stopGame = () => {
+    setStartCountdown(null);
     setGameState('idle');
     setHistory([]);
     setSecret(null);
@@ -110,6 +123,11 @@ export default function App() {
     setHintRevealed(0);
     setIsLoading(false);
     setInputText('');
+  };
+
+  const handlePlayClick = () => {
+    stopGame();
+    setStartCountdown(3);
   };
 
   const startGame = async () => {
@@ -241,7 +259,7 @@ Do not reveal the answer unless the user explicitly gives up. Keep your "answer"
         {/* Game Status Bar */}
         <div className="flex justify-between items-end mb-6 px-2">
           <div className="font-mono text-xs tracking-widest uppercase text-brown-500 flex items-center gap-6">
-            {gameState === 'idle' && <span>{isLoading ? 'Initializing...' : 'Ready to play'}</span>}
+            {gameState === 'idle' && <span>{isLoading ? 'Initializing...' : startCountdown !== null ? 'Starting...' : 'Ready to play'}</span>}
             {gameState === 'playing' && (
               <>
                 <span className="flex items-center gap-2">
@@ -289,8 +307,8 @@ Do not reveal the answer unless the user explicitly gives up. Keep your "answer"
                   <Square size={16} fill="currentColor" />
                 </button>
                 <button 
-                  onClick={startGame} 
-                  disabled={isLoading}
+                  onClick={handlePlayClick} 
+                  disabled={isLoading || startCountdown !== null}
                   className="w-10 h-10 flex items-center justify-center rounded-full text-brown-600 hover:bg-beige-200 hover:text-brown-900 transition-colors disabled:opacity-30" 
                   title="Restart Game"
                 >
@@ -303,14 +321,29 @@ Do not reveal the answer unless the user explicitly gives up. Keep your "answer"
 
         {/* Chat History */}
         <div className="flex-1 overflow-y-auto px-2 py-4 space-y-6 scrollbar-hide relative">
-          {gameState === 'idle' && !isLoading ? (
+          {startCountdown !== null ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <AnimatePresence>
+                <motion.div
+                  key={startCountdown}
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 1.5, opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-8xl font-serif text-brown-900 absolute"
+                >
+                  {startCountdown}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          ) : gameState === 'idle' && !isLoading ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-6">
               <div className="w-20 h-20 bg-beige-200 rounded-full flex items-center justify-center text-brown-500 mb-2">
                 <Lightbulb size={32} />
               </div>
               <h2 className="font-serif text-2xl text-brown-900">Ready to guess?</h2>
               <button 
-                onClick={startGame}
+                onClick={handlePlayClick}
                 className="flex items-center gap-2 bg-brown-500 text-beige-50 px-8 py-4 rounded-full hover:bg-brown-600 transition-all hover:scale-105 active:scale-95 shadow-sm font-medium tracking-wide"
               >
                 <Play size={18} fill="currentColor" />
